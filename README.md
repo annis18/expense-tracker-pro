@@ -44,3 +44,8 @@ MongoDB Atlas connection string and JWT secret.
 
 Frontend: _(Vercel URL goes here after Step 3)_
 Backend API: _(Render URL goes here after Step 3)_
+
+## Live Demo
+
+Frontend: https://expense-tracker-pro-indol.vercel.app
+Backend API: https://expense-tracker-api-wlyu.onrender.com/api/health
