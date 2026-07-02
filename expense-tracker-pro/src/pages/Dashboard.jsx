@@ -1,3 +1,6 @@
+import { useAuth }     from '../context/AuthContext'
+import { useCurrency } from '../context/CurrencyContext'
+import { formatCurrency, formatCurrencyWithSign } from '../utils/formatCurrency'
 import { categoryMap } from '../constants/categories'
 import {
   TrendingUp,
@@ -12,6 +15,8 @@ import {
 // ---------------------------------------------------------------------------
 
 function SummaryCard({ label, value, change, positive, icon: Icon, borderColor, iconBg, iconColor }) {
+  const { currencyCode } = useCurrency()
+
   return (
     <div className={`bg-gray-900 rounded-2xl p-5 border ${borderColor} flex flex-col gap-4`}>
       <div className="flex items-center justify-between">
@@ -22,7 +27,7 @@ function SummaryCard({ label, value, change, positive, icon: Icon, borderColor, 
       </div>
       <div>
         <p className="text-white text-2xl font-bold tracking-tight">
-          ${Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          {formatCurrency(value, currencyCode)}
         </p>
         <div className="flex items-center gap-1 mt-1">
           {positive ? (
@@ -40,6 +45,7 @@ function SummaryCard({ label, value, change, positive, icon: Icon, borderColor, 
 }
 
 function TransactionRow({ tx }) {
+  const { currencyCode } = useCurrency()
   const cat = categoryMap[tx.category] ?? categoryMap['Other']
   const Icon = cat.icon
   const isExpense = tx.type === 'expense'
@@ -54,8 +60,10 @@ function TransactionRow({ tx }) {
         <p className="text-xs text-gray-600">{tx.category}</p>
       </div>
       <p className="text-xs text-gray-600 hidden sm:block">{tx.date}</p>
-      <p className={`text-sm font-semibold flex-shrink-0 ${isExpense ? 'text-rose-400' : 'text-emerald-400'}`}>
-        {isExpense ? '-' : '+'}${tx.amount.toFixed(2)}
+      <p className={`text-sm font-semibold flex-shrink-0 ${
+        isExpense ? 'text-rose-400' : 'text-emerald-400'
+      }`}>
+        {formatCurrencyWithSign(isExpense ? -tx.amount : tx.amount, currencyCode)}
       </p>
     </div>
   )
@@ -65,18 +73,37 @@ function TransactionRow({ tx }) {
 // Page
 // ---------------------------------------------------------------------------
 
-export default function Dashboard({ transactions = [], totalIncome = 0, totalExpenses = 0, totalBalance = 0 }) {
+export default function Dashboard({
+  transactions  = [],
+  totalIncome   = 0,
+  totalExpenses = 0,
+  totalBalance  = 0,
+}) {
+  const { user }       = useAuth()
+  const { currencyCode, currency, toggleCurrency } = useCurrency()
   const recent = transactions.slice(0, 5)
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
 
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Welcome back, John. Here&apos;s your financial summary.
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Welcome back, {user?.name ?? 'there'}. Here&apos;s your financial summary.
+          </p>
+        </div>
+
+        {/* Currency Toggle Button */}
+        <button
+          onClick={toggleCurrency}
+          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-600 text-gray-300 hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition-all flex-shrink-0"
+        >
+          <span className="text-base">{currency.symbol}</span>
+          <span>{currencyCode}</span>
+          <span className="text-gray-600 text-xs">↕</span>
+        </button>
       </div>
 
       {/* Summary Cards */}
