@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
-import { X, Loader2, Save } from 'lucide-react'
-import { categories } from '../../constants/categories'
+import { X, Loader2, Save }    from 'lucide-react'
+import { toast }               from 'react-toastify'
+import { categories }          from '../../constants/categories'
 
 export default function EditTransactionModal({ transaction, onClose, onSave }) {
   const [form, setForm]             = useState(null)
   const [errors, setErrors]         = useState({})
   const [submitting, setSubmitting] = useState(false)
-  const [apiError, setApiError]     = useState('')
 
-  // Pre-fill the form whenever a transaction is passed in
+  // apiError state is GONE — toast handles it now
+
   useEffect(() => {
     if (transaction) {
       setForm({
@@ -20,11 +21,9 @@ export default function EditTransactionModal({ transaction, onClose, onSave }) {
         note:     transaction.note || '',
       })
       setErrors({})
-      setApiError('')
     }
   }, [transaction])
 
-  // Don't render anything if no transaction is being edited
   if (!transaction || !form) return null
 
   function handleChange(e) {
@@ -53,14 +52,20 @@ export default function EditTransactionModal({ transaction, onClose, onSave }) {
 
     try {
       setSubmitting(true)
-      setApiError('')
       await onSave(transaction._id, {
         ...form,
         amount: parseFloat(form.amount),
       })
+
+      // ✅ Success toast — modal closes immediately, toast confirms in background
+      toast.success(`"${form.title}" updated successfully!`)
       onClose()
+
     } catch (err) {
-      setApiError(err.response?.data?.error || 'Failed to update transaction.')
+      // ❌ Error toast replaces the red apiError paragraph
+      toast.error(
+        err.response?.data?.error || 'Failed to update transaction. Please try again.'
+      )
     } finally {
       setSubmitting(false)
     }
@@ -196,13 +201,6 @@ export default function EditTransactionModal({ transaction, onClose, onSave }) {
               className="bg-gray-800 text-white text-sm rounded-lg px-4 py-2.5 outline-none border border-gray-700 focus:border-indigo-500 transition-colors resize-none"
             />
           </div>
-
-          {/* API error */}
-          {apiError && (
-            <p className="text-rose-400 text-xs bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">
-              {apiError}
-            </p>
-          )}
 
           {/* Actions */}
           <div className="flex gap-3 mt-2">

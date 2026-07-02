@@ -1,6 +1,14 @@
-import { useState } from 'react'
+import { useState }    from 'react'
 import { PlusCircle, Trash2, Loader2 } from 'lucide-react'
+import { toast }       from 'react-toastify'
 import { categories, categoryMap } from '../constants/categories'
+import { useCurrency } from '../context/CurrencyContext'
+import { formatCurrency } from '../utils/formatCurrency'
+import EmptyState      from '../components/ui/EmptyState'
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 const emptyForm = {
   title:    '',
@@ -10,6 +18,10 @@ const emptyForm = {
   date:     new Date().toISOString().split('T')[0],
   note:     '',
 }
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
 
 function InputField({ label, error, children }) {
   return (
@@ -22,8 +34,9 @@ function InputField({ label, error, children }) {
 }
 
 function TransactionItem({ tx, onDelete }) {
-  const cat = categoryMap[tx.category] ?? categoryMap['Other']
-  const Icon = cat.icon
+  const { currencyCode } = useCurrency()
+  const cat     = categoryMap[tx.category] ?? categoryMap['Other']
+  const Icon    = cat.icon
   const isExpense = tx.type === 'expense'
 
   return (
@@ -38,8 +51,10 @@ function TransactionItem({ tx, onDelete }) {
       {tx.note && (
         <p className="text-xs text-gray-600 hidden sm:block max-w-32 truncate">{tx.note}</p>
       )}
-      <p className={`text-sm font-semibold flex-shrink-0 ${isExpense ? 'text-rose-400' : 'text-emerald-400'}`}>
-        {isExpense ? '-' : '+'}${parseFloat(tx.amount).toFixed(2)}
+      <p className={`text-sm font-semibold flex-shrink-0 ${
+        isExpense ? 'text-rose-400' : 'text-emerald-400'
+      }`}>
+        {isExpense ? '-' : '+'}{formatCurrency(tx.amount, currencyCode)}
       </p>
       <button
         onClick={() => onDelete(tx.id)}
@@ -51,13 +66,17 @@ function TransactionItem({ tx, onDelete }) {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default function AddExpense({ onAdd }) {
-  const [form, setForm]           = useState(emptyForm)
-  const [errors, setErrors]       = useState({})
-  const [localList, setLocalList] = useState([])
-  const [submitted, setSubmitted] = useState(false)
+  const [form, setForm]             = useState(emptyForm)
+  const [errors, setErrors]         = useState({})
+  const [localList, setLocalList]   = useState([])
   const [submitting, setSubmitting] = useState(false)
-  const [apiError, setApiError]   = useState('')
+
+  // apiError and submitted states are GONE — toasts handle both now
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -77,25 +96,34 @@ export default function AddExpense({ onAdd }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setApiError('')
     const newErrors = validate()
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      // Toast for validation failure — user might miss the red text
+      toast.error('Please fix the errors before submitting.')
+      return
+    }
 
     try {
       setSubmitting(true)
       await onAdd(form)
 
-      // Local preview only — purely visual, resets on page leave
+      // Local preview list
       setLocalList((prev) => [
         { ...form, id: Date.now(), amount: parseFloat(form.amount) },
         ...prev,
       ])
       setForm(emptyForm)
       setErrors({})
-      setSubmitted(true)
-      setTimeout(() => setSubmitted(false), 3000)
+
+      // ✅ Success toast replaces the green div
+      toast.success(`"${form.title}" added successfully!`)
+
     } catch (err) {
-      setApiError(err.response?.data?.error || 'Failed to add transaction. Please try again.')
+      // ❌ Error toast replaces the red apiError paragraph
+      toast.error(
+        err.response?.data?.error || 'Failed to add transaction. Please try again.'
+      )
     } finally {
       setSubmitting(false)
     }
@@ -215,12 +243,6 @@ export default function AddExpense({ onAdd }) {
               />
             </InputField>
 
-            {apiError && (
-              <p className="text-rose-400 text-xs bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">
-                {apiError}
-              </p>
-            )}
-
             <button
               type="submit"
               disabled={submitting}
@@ -229,12 +251,6 @@ export default function AddExpense({ onAdd }) {
               {submitting ? <Loader2 size={18} className="animate-spin" /> : <PlusCircle size={18} />}
               {submitting ? 'Adding...' : 'Add Transaction'}
             </button>
-
-            {submitted && (
-              <div className="text-center text-sm text-emerald-400 font-medium animate-pulse">
-                ✅ Transaction added! Check Dashboard and History.
-              </div>
-            )}
 
           </form>
         </div>
@@ -249,13 +265,12 @@ export default function AddExpense({ onAdd }) {
           </div>
 
           {localList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <div className="bg-gray-800 p-4 rounded-2xl">
-                <PlusCircle size={28} className="text-gray-600" />
-              </div>
-              <p className="text-gray-600 text-sm">No transactions yet.</p>
-              <p className="text-gray-700 text-xs">Fill the form and hit Add Transaction.</p>
-            </div>
+            <EmptyState
+              icon={PlusCircle}
+              title="Nothing added yet"
+              message="Fill the form on the left and hit Add Transaction."
+              showButton={false}
+            />
           ) : (
             <div>
               {localList.map((tx) => (
