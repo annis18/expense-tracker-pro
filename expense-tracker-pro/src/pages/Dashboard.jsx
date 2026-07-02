@@ -1,13 +1,16 @@
 import { useAuth }     from '../context/AuthContext'
 import { useCurrency } from '../context/CurrencyContext'
 import { formatCurrency, formatCurrencyWithSign } from '../utils/formatCurrency'
+import { formatDate }  from '../utils/formatDate'
 import { categoryMap } from '../constants/categories'
+import EmptyState      from '../components/ui/EmptyState'
 import {
   TrendingUp,
   TrendingDown,
   DollarSign,
   ArrowUpRight,
   ArrowDownRight,
+  ReceiptText,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -59,7 +62,12 @@ function TransactionRow({ tx }) {
         <p className="text-sm font-medium text-gray-200 truncate">{tx.title}</p>
         <p className="text-xs text-gray-600">{tx.category}</p>
       </div>
-      <p className="text-xs text-gray-600 hidden sm:block">{tx.date}</p>
+
+      {/* Clean formatted date replacing raw ISO string */}
+      <p className="text-xs text-gray-600 hidden sm:block flex-shrink-0">
+        {formatDate(tx.date)}
+      </p>
+
       <p className={`text-sm font-semibold flex-shrink-0 ${
         isExpense ? 'text-rose-400' : 'text-emerald-400'
       }`}>
@@ -79,7 +87,7 @@ export default function Dashboard({
   totalExpenses = 0,
   totalBalance  = 0,
 }) {
-  const { user }       = useAuth()
+  const { user }                           = useAuth()
   const { currencyCode, currency, toggleCurrency } = useCurrency()
   const recent = transactions.slice(0, 5)
 
@@ -95,7 +103,7 @@ export default function Dashboard({
           </p>
         </div>
 
-        {/* Currency Toggle Button */}
+        {/* Currency Toggle */}
         <button
           onClick={toggleCurrency}
           className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-600 text-gray-300 hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition-all flex-shrink-0"
@@ -148,10 +156,14 @@ export default function Dashboard({
             {transactions.length} total
           </span>
         </div>
+
+        {/* Smart Empty State */}
         {recent.length === 0 ? (
-          <p className="text-gray-600 text-sm text-center py-10">
-            No transactions yet. Add one to get started.
-          </p>
+          <EmptyState
+            icon={ReceiptText}
+            title="No transactions yet"
+            message="Add your first expense to see your financial summary here."
+          />
         ) : (
           <div>
             {recent.map((tx) => (

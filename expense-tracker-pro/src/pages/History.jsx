@@ -2,12 +2,18 @@ import { useState, useMemo } from 'react'
 import { Search, Filter, Trash2, Pencil } from 'lucide-react'
 import { categoryMap } from '../constants/categories'
 import EditTransactionModal from '../components/transactions/EditTransactionModal'
+import { formatDate } from '../utils/formatDate'
+import { formatCurrencyWithSign } from '../utils/formatCurrency'
+import { useCurrency } from '../context/CurrencyContext'
+import EmptyState from '../components/ui/EmptyState'
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
 function SummaryPill({ label, value, positive }) {
+  const { currencyCode } = useCurrency()
+
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 flex flex-col gap-1">
       <p className="text-gray-500 text-xs font-medium">{label}</p>
@@ -16,7 +22,7 @@ function SummaryPill({ label, value, positive }) {
         positive === false ? 'text-rose-400'    :
         'text-white'
       }`}>
-        ${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        {formatCurrencyWithSign(value, currencyCode)}
       </p>
     </div>
   )
@@ -26,6 +32,7 @@ function TransactionRow({ tx, onDelete, onEdit }) {
   const cat = categoryMap[tx.category] ?? categoryMap['Other']
   const Icon = cat.icon
   const isExpense = tx.type === 'expense'
+  const { currencyCode } = useCurrency()
 
   return (
     <div className="flex items-center gap-4 py-3.5 border-b border-gray-800 last:border-0 group">
@@ -40,12 +47,12 @@ function TransactionRow({ tx, onDelete, onEdit }) {
         <p className="text-xs text-gray-600 hidden md:block max-w-40 truncate italic">{tx.note}</p>
       )}
       <p className="text-xs text-gray-600 hidden sm:block flex-shrink-0">
-        {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        {formatDate(tx.date)}
       </p>
       <p className={`text-sm font-semibold flex-shrink-0 w-24 text-right ${
         isExpense ? 'text-rose-400' : 'text-emerald-400'
       }`}>
-        {isExpense ? '-' : '+'}${tx.amount.toFixed(2)}
+        {formatCurrencyWithSign(isExpense ? -tx.amount : tx.amount, currencyCode)}
       </p>
 
       {/* Edit + Delete actions */}
@@ -188,18 +195,17 @@ export default function History({ transactions = [], onDelete, onUpdate }) {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="bg-gray-800 p-4 rounded-2xl">
-              <Search size={28} className="text-gray-600" />
-            </div>
-            <p className="text-gray-600 text-sm">No transactions match your filters.</p>
-            <button
-              onClick={() => { setSearch(''); setTypeFilter('all'); setCategoryFilter('all') }}
-              className="text-indigo-400 hover:text-indigo-300 text-xs font-medium transition-colors"
-            >
-              Clear all filters
-            </button>
-          </div>
+          <EmptyState
+            icon={Search}
+            title="No transactions found"
+            message="Try adjusting your search or filters."
+            buttonLabel="Clear Filters"
+            onButtonClick={() => {
+              setSearch('')
+              setTypeFilter('all')
+              setCategoryFilter('all')
+            }}
+          />
         ) : (
           <div>
             {filtered.map((tx) => (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, Outlet } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+//import { Loader2 } from 'lucide-react'
 import Navbar    from './components/layout/Navbar'
 import Sidebar   from './components/layout/Sidebar'
 import ProtectedRoute from './components/auth/ProtectedRoute'
@@ -12,6 +12,7 @@ import Settings   from './pages/Settings'
 import Login      from './pages/Login'
 import Register   from './pages/Register'
 import NotFound   from './pages/NotFound'
+import { SkeletonDashboard } from './components/ui/SkeletonCard'
 import {
   getTransactions,
   createTransaction,
@@ -39,9 +40,10 @@ function Layout() {
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
-      <Loader2 size={36} className="text-indigo-500 animate-spin" />
-      <p className="text-gray-500 text-sm">Loading your transactions...</p>
+    <div className="min-h-screen bg-gray-950 text-white">
+      <div className="ml-64 pt-16">
+        <SkeletonDashboard />
+      </div>
     </div>
   )
 }
